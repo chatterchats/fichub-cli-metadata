@@ -47,6 +47,158 @@ bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}, {rate_fmt}{postfix}, ETA: {rema
 app_dirs = PlatformDirs("fichub_cli", "fichub")
 console = Console()
 
+def _to_int(val):
+    """Convert strings like '1,100' or '103,547' to int safely."""
+    if val is None:
+        return None
+    try:
+        if isinstance(val, int):
+            return val
+        s = str(val)
+        # Keep digits only (avoid commas, spaces, etc.)
+        digits = "".join(ch for ch in s if ch.isdigit())
+        return int(digits) if digits else None
+    except Exception:
+        return None
+
+
+def _first(val):
+    """Return first element if val is a list; otherwise return val."""
+    if isinstance(val, (list, tuple)) and val:
+        return val[0]
+    return val
+
+def normalize_raw_extended_meta(meta: dict) -> dict:
+    """
+    Normalize FicHub's rawExtendedMeta so that both FFN-style and AO3-style
+    responses populate common top-level fields that our DB layer expects:
+    - fic_id
+    - rated
+    - language
+    - genres
+    - characters
+    - reviews
+    - favorites
+    - follows
+    - raw_fandom
+    - words
+    - published / updated
+    """
+    if not isinstance(meta, dict):
+        return meta
+
+    rem = meta.get("rawExtendedMeta")
+    if not isinstance(rem, dict):
+        return meta
+
+    # --------------------------
+    # fic_id (site-specific id)
+    # --------------------------
+    if "fic_id" not in meta:
+        fic_id = None
+
+        # FFN and other sites may include a numeric "id" directly
+        if "id" in rem:
+            try:
+                fic_id = int(str(rem["id"]))
+            except (TypeError, ValueError):
+                fic_id = None
+
+        # AO3: parse from /works/<id>/ in "source" URL if needed
+        if fic_id is None and isinstance(meta.get("source"), str):
+            # e.g. https://archiveofourown.org/works/33377146/chapters/82901548?...
+            import re
+
+            m = re.search(r"/works/(\d+)", meta["source"])
+            if m:
+                try:
+                    fic_id = int(m.group(1))
+                except ValueError:
+                    fic_id = None
+
+        if fic_id is not None:
+            meta["fic_id"] = fic_id
+
+    # ------------------------------------------------------------------
+    # FanFiction.NET-like shape (flat, has raw_fandom, favorites, etc.)
+    # ------------------------------------------------------------------
+    if "raw_fandom" in rem or "favorites" in rem or "follows" in rem:
+        meta.setdefault("rated", rem.get("rated"))
+        meta.setdefault("language", rem.get("language"))
+        meta.setdefault("raw_fandom", rem.get("raw_fandom"))
+        meta.setdefault("genres", rem.get("genres"))
+        meta.setdefault("characters", rem.get("characters"))
+
+        if "favorites" in rem:
+            meta.setdefault("favorites", _to_int(rem.get("favorites")))
+        if "follows" in rem:
+            meta.setdefault("follows", _to_int(rem.get("follows")))
+        if "reviews" in rem:
+            meta.setdefault("reviews", _to_int(rem.get("reviews")))
+
+        # Prefer the rawExtendedMeta words if present (they may include commas)
+        if "words" in rem:
+            words_int = _to_int(rem.get("words"))
+            if words_int is not None:
+                meta["words"] = words_int
+
+        meta.setdefault("status", rem.get("status"))
+
+    # ------------------------------------------------------------------
+    # AO3-like shape (nested stats, listy tags, etc.)
+    # ------------------------------------------------------------------
+    stats = rem.get("stats")
+    if isinstance(stats, dict):
+        # rating is usually ["Mature"], ["Teen And Up Audiences"], etc.
+        if "rating" in rem and "rated" not in meta:
+            meta["rated"] = _first(rem.get("rating"))
+
+        if "language" in rem and "language" not in meta:
+            meta["language"] = rem.get("language")
+
+        if "fandom" in rem and "raw_fandom" not in meta:
+            # e.g. ["Harry Potter - J. K. Rowling"]
+            meta["raw_fandom"] = ", ".join(rem.get("fandom") or [])
+
+        # Treat "category" loosely as genres
+        if "category" in rem and "genres" not in meta:
+            meta["genres"] = ", ".join(rem.get("category") or [])
+
+        if "character" in rem and "characters" not in meta:
+            meta["characters"] = ", ".join(rem.get("character") or [])
+
+        # NEW: relationships and tags (freeform)
+        if "relationship" in rem and "relationships" not in meta:
+            meta["relationships"] = ", ".join(rem.get("relationship") or [])
+
+        if "freeform" in rem and "tags" not in meta:
+            meta["tags"] = ", ".join(rem.get("freeform") or [])
+
+        # Stats flattening
+        if "comments" in stats and "reviews" not in meta:
+            meta["reviews"] = _to_int(stats.get("comments"))
+
+        # AO3 closest analogue to "favorites" is kudos
+        if "kudos" in stats and "favorites" not in meta:
+            meta["favorites"] = _to_int(stats.get("kudos"))
+
+        # There's no perfect AO3 analogue for "follows" that we can
+        # track at least; "kudos" nor "bookmarks" are quite the same.
+
+        # Words – prefer numeric version from stats
+        if "words" in stats:
+            words_int = _to_int(stats.get("words"))
+            if words_int is not None:
+                meta["words"] = words_int
+
+        # Dates
+        if "published" in stats and "created" not in meta:
+            # FicHub already gives created/updated, but this is a safe fallback
+            meta.setdefault("created", stats.get("published"))
+        if "status" in stats and "updated" not in meta:
+            meta.setdefault("updated", stats.get("status"))
+
+    return meta
 
 class FetchData:
     def __init__(self, out_dir="", input_db="", update_db=False, format_type=[],
@@ -209,7 +361,7 @@ class FetchData:
             repectively
         """
         try:
-            models.Base.metadata.create_all(bind=self.engine)
+            models.Base.metadata.create_all(bind=self.engine) # pyright: ignore[reportAttributeAccessIssue]
         except OperationalError as e:
             if self.debug:
                 logger.error(Fore.RED + str(e))
