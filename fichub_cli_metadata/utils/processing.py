@@ -109,8 +109,13 @@ def object_as_dict(obj):
     """
     Convert a sqlalchemy object into a dictionary
     """
+    inspector = inspect(obj)
+    mapper = getattr(inspect, 'mapper', None)
+    if mapper is None:
+        raise TypeError("Provided object is not a SQLAlchemy mapped instance.")
+        
     return {c.key: getattr(obj, c.key)
-            for c in inspect(obj).mapper.column_attrs}
+            for c in mapper.column_attrs}
 
 
 def prompt_user_contact():
