@@ -49,7 +49,7 @@ console = Console()
 
 
 class FetchData:
-    def __init__(self, out_dir="", input_db="", update_db=False, format_type=None,
+    def __init__(self, out_dir="", input_db="", update_db=False, format_type=[],
                  export_db=False, verbose=False, debug=False, changelog=False, automated=False, force=False):
         self.out_dir = out_dir
         self.format_type = format_type
