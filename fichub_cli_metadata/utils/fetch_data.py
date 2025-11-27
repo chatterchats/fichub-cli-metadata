@@ -318,7 +318,7 @@ class FetchData:
                                     pbar.update(1)
 
                                 # if fic doesnt exist or the data is not fetched by the API yet
-                                except Exception as e:
+                                except Exception:
                                     if self.debug:
                                         logger.error(str(traceback.format_exc()))
                                     self.exit_status = 1
@@ -412,7 +412,7 @@ class FetchData:
         try:
             urls, _ = urls_preprocessing(urls_input, self.debug)
         # if output.log doesnt exist, when run 1st time
-        except FileNotFoundError  as e:
+        except FileNotFoundError:
             if self.debug:
                 logger.error(str(traceback.format_exc()))
             urls = urls_input
@@ -465,7 +465,7 @@ class FetchData:
                         pbar.update(1)
 
                     # if fic doesnt exist or the data is not fetched by the API yet
-                    except Exception as e:
+                    except Exception:
                         if self.debug:
                            logger.error(str(traceback.format_exc()))
                         err_urls.append(url)
