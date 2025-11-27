@@ -91,13 +91,11 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
     if not isinstance(rem, dict):
         return meta
 
-    # --------------------------
+
     # fic_id (site-specific id)
-    # --------------------------
     if "fic_id" not in meta:
         fic_id = None
 
-        # FFN and other sites may include a numeric "id" directly
         if "id" in rem:
             try:
                 fic_id = int(str(rem["id"]))
@@ -119,9 +117,8 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
         if fic_id is not None:
             meta["fic_id"] = fic_id
 
-    # ------------------------------------------------------------------
-    # FanFiction.NET-like shape (flat, has raw_fandom, favorites, etc.)
-    # ------------------------------------------------------------------
+
+    # FFN Normalization
     if "raw_fandom" in rem or "favorites" in rem or "follows" in rem:
         meta.setdefault("rated", rem.get("rated"))
         meta.setdefault("language", rem.get("language"))
@@ -144,9 +141,8 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
 
         meta.setdefault("status", rem.get("status"))
 
-    # ------------------------------------------------------------------
-    # AO3-like shape (nested stats, listy tags, etc.)
-    # ------------------------------------------------------------------
+
+    # AO3 Normalization
     stats = rem.get("stats")
     if isinstance(stats, dict):
         # rating is usually ["Mature"], ["Teen And Up Audiences"], etc.
@@ -298,6 +294,7 @@ class FetchData:
 
                                     # save the data to db
                                     if fic.files["meta"]:
+                                        fic.files["meta"] = normalize_raw_extended_meta(fic.files["meta"])
                                         meta_fetched_log(self.debug, url)
                                         self.save_to_db(fic.files["meta"])
 
@@ -444,6 +441,9 @@ class FetchData:
 
                         # update the metadata
                         if fic.files["meta"]:
+                            fic.files["meta"] = normalize_raw_extended_meta(
+                                fic.files["meta"]
+                            )
                             meta_fetched_log(self.debug, url)
                             self.exit_status, self.url_exit_status = crud.update_data(
                                 self.db, fic.files["meta"], self.debug)
