@@ -388,7 +388,7 @@ class FetchData:
                 logger.info(Fore.RED + str(e))
             sys.exit(1)
 
-    def fetch_urls_from_page(self, fetch_urls: str, user_contact: str = None):
+    def fetch_urls_from_page(self, fetch_urls: str, user_contact: str = ""):
 
         if user_contact is None:
             user_contact = prompt_user_contact()
