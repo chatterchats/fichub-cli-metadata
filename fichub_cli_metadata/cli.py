@@ -14,7 +14,6 @@
 
 import typer
 import sys
-import os
 from platformdirs import PlatformDirs
 from loguru import logger
 from datetime import datetime
