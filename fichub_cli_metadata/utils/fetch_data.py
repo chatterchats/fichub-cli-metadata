@@ -125,7 +125,7 @@ class FetchData:
                             # check if url exists in db
                             if self.input_db:
                                 exists = self.db.query(models.Metadata).filter(
-                                    models.Metadata.source == url).first()
+                                    models.Metadata.source == url).first() # pyright: ignore[reportOptionalCall]
                             else:
                                 exists = None
 

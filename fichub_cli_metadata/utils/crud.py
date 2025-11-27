@@ -37,7 +37,7 @@ def insert_data(db: Session, item: dict, debug: bool):
     """
 
     exists = db.query(models.Metadata).filter(
-        models.Metadata.source == item['source']).first()
+        models.Metadata.source == item['source']).first() # pyright: ignore[reportOptionalCall]
 
     if not exists:
         query = get_ins_query(item)
@@ -70,7 +70,7 @@ def update_data(db: Session, item: dict, debug: bool):
         exit(1)
 
     exists = db.query(models.Metadata).filter(
-        models.Metadata.source == item['source']).first()
+        models.Metadata.source == item['source']).first() # pyright: ignore[reportOptionalCall]
     if not exists:
         query = get_ins_query(item)
         db.add(query)
@@ -80,8 +80,8 @@ def update_data(db: Session, item: dict, debug: bool):
                    "Adding metadata to the database.")
     else:
         db.query(models.Metadata).filter(
-            models.Metadata.source == item['source']). \
-            update(
+            models.Metadata.source == item['source'] # pyright: ignore[reportOptionalCall]
+        ).update( 
             {
                 models.Metadata.fichub_id: item['id'],
                 models.Metadata.fic_id: process_extendedMeta(item,'id'),
