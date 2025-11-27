@@ -86,38 +86,37 @@ def update_data(db: Session, item: dict, debug: bool):
         tqdm.write(Fore.GREEN + "Adding metadata to the database.")
     else:
         db.query(models.Metadata).filter(
-            models.Metadata.source
-            == item["source"]  # pyright: ignore[reportOptionalCall]
-        ).update(
+            models.Metadata.source == item['source'] # pyright: ignore[reportOptionalCall]
+        ).update( 
             {
-                models.Metadata.fichub_id: item["id"],
-                models.Metadata.fic_id: process_extendedMeta(item, "id"),
-                models.Metadata.title: item["title"],
-                models.Metadata.author: item["author"],
-                models.Metadata.author_id: item["authorLocalId"],
-                models.Metadata.author_url: item["authorUrl"],
-                models.Metadata.chapters: item["chapters"],
-                models.Metadata.created: item["created"],
-                models.Metadata.description: item["description"],
-                models.Metadata.rated: process_extendedMeta(item, "rated"),
-                models.Metadata.language: process_extendedMeta(item, "language"),
-                models.Metadata.genre: process_extendedMeta(item, "genres"),
-                models.Metadata.characters: process_extendedMeta(item, "characters"),
-                models.Metadata.relationships: item.get("relationships"),
-                models.Metadata.tags: item.get("tags"),
-                models.Metadata.reviews: process_extendedMeta(item, "reviews"),
-                models.Metadata.favorites: process_extendedMeta(item, "favorites"),
-                models.Metadata.follows: process_extendedMeta(item, "follows"),
-                models.Metadata.status: item["status"],
-                models.Metadata.words: item["words"],
-                models.Metadata.fandom: process_extendedMeta(item, "raw_fandom"),
+                models.Metadata.fichub_id: item['id'],
+                models.Metadata.fic_id: item.get('fic_id') or process_extendedMeta(item, 'id'),
+                models.Metadata.title: item['title'],
+                models.Metadata.author: item['author'],
+                models.Metadata.author_id: item['authorLocalId'],
+                models.Metadata.author_url: item['authorUrl'],
+                models.Metadata.chapters: item['chapters'],
+                models.Metadata.created: item['created'],
+                models.Metadata.description: item['description'],
+                models.Metadata.rated: item.get('rated') or process_extendedMeta(item, 'rated'),
+                models.Metadata.language: item.get('language') or process_extendedMeta(item, 'language'),
+                models.Metadata.genre: item.get('genres') or process_extendedMeta(item, 'genres'),
+                models.Metadata.characters: item.get('characters') or process_extendedMeta(item, 'characters'),
+                models.Metadata.relationships: item.get('relationships'),
+                models.Metadata.tags: item.get('tags'),
+                models.Metadata.reviews: item.get('reviews') or process_extendedMeta(item, 'reviews'),
+                models.Metadata.favorites: item.get('favorites') or process_extendedMeta(item, 'favorites'),
+                models.Metadata.follows: item.get('follows') or process_extendedMeta(item, 'follows'),
+                models.Metadata.status: item['status'],
+                models.Metadata.words: item['words'],
+                models.Metadata.fandom: item.get('raw_fandom') or process_extendedMeta(item, 'raw_fandom'),
                 models.Metadata.fic_last_updated: datetime.fromisoformat(
-                    item["updated"]
-                ).strftime(config["fic_up_time_format"]),
+                    item['updated']
+                ).strftime(config['fic_up_time_format']),
                 models.Metadata.db_last_updated: datetime.now()
                 .astimezone()
-                .strftime(config["db_up_time_format"]),
-                models.Metadata.source: item["source"],
+                .strftime(config['db_up_time_format']),
+                models.Metadata.source: item['source'],
             }
         )
         if debug:
