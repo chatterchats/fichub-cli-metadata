@@ -68,12 +68,10 @@ def get_ins_query(item: dict):
         chapters=item["chapters"],
         created=item["created"],
         description=item["description"],
-        # prefer normalized, fall back to extendedMeta helper
         rated=item.get("rated") or process_extendedMeta(item, "rated"),
         language=item.get("language") or process_extendedMeta(item, "language"),
         genre=item.get("genres") or process_extendedMeta(item, "genres"),
         characters=item.get("characters") or process_extendedMeta(item, "characters"),
-        # NEW: relationships & tags – mainly from normalize_raw_extended_meta
         relationships=item.get("relationships"),
         tags=item.get("tags"),
         reviews=item.get("reviews") or process_extendedMeta(item, "reviews"),
