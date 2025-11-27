@@ -36,16 +36,21 @@ from fichub_cli.utils.fichub import FicHub
 from .logging import meta_fetched_log, db_not_found_log
 
 from fichub_cli_metadata import __version__ as plugin_version
-from fichub_cli.utils.processing import check_url, save_data, \
-    urls_preprocessing, build_changelog, output_log_cleanup
+from fichub_cli.utils.processing import (
+    check_url,
+    save_data,
+    urls_preprocessing,
+    build_changelog,
+    output_log_cleanup,
+)
 from fichub_cli.utils.logging import download_processing_log, verbose_log
-from .processing import init_database, get_db, object_as_dict,\
-    prompt_user_contact
-    
+from .processing import init_database, get_db, object_as_dict, prompt_user_contact
+
 
 bar_format = "{l_bar}{bar}| {n_fmt}/{total_fmt}, {rate_fmt}{postfix}, ETA: {remaining}"
 app_dirs = PlatformDirs("fichub_cli", "fichub")
 console = Console()
+
 
 def _to_int(val):
     """Convert strings like '1,100' or '103,547' to int safely."""
@@ -67,6 +72,7 @@ def _first(val):
     if isinstance(val, (list, tuple)) and val:
         return val[0]
     return val
+
 
 def normalize_raw_extended_meta(meta: dict) -> dict:
     """
@@ -90,7 +96,6 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
     rem = meta.get("rawExtendedMeta")
     if not isinstance(rem, dict):
         return meta
-
 
     # fic_id (site-specific id)
     if "fic_id" not in meta:
@@ -117,7 +122,6 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
         if fic_id is not None:
             meta["fic_id"] = fic_id
 
-
     # FFN Normalization
     if "raw_fandom" in rem or "favorites" in rem or "follows" in rem:
         meta.setdefault("rated", rem.get("rated"))
@@ -140,7 +144,6 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
                 meta["words"] = words_int
 
         meta.setdefault("status", rem.get("status"))
-
 
     # AO3 Normalization
     stats = rem.get("stats")
@@ -196,9 +199,21 @@ def normalize_raw_extended_meta(meta: dict) -> dict:
 
     return meta
 
+
 class FetchData:
-    def __init__(self, out_dir="", input_db="", update_db=False, format_type=[],
-                 export_db=False, verbose=False, debug=False, changelog=False, automated=False, force=False):
+    def __init__(
+        self,
+        out_dir="",
+        input_db="",
+        update_db=False,
+        format_type=[],
+        export_db=False,
+        verbose=False,
+        debug=False,
+        changelog=False,
+        automated=False,
+        force=False,
+    ):
         self.out_dir = out_dir
         self.format_type = format_type
         self.input_db = input_db
@@ -212,8 +227,7 @@ class FetchData:
         self.exit_status = 0
 
     def save_metadata(self, input: str):
-        """ Store the metadata in the sqlite database
-        """
+        """Store the metadata in the sqlite database"""
         db_name = "fichub_metadata"
         supported_url = None
 
@@ -236,8 +250,9 @@ class FetchData:
 
         if not self.input_db:  # create db if no existing db is given
             timestamp = datetime.now().strftime("%Y-%m-%d T%H%M%S")
-            self.db_file = os.path.join(
-                self.out_dir, db_name) + f" - {timestamp}.sqlite"
+            self.db_file = (
+                os.path.join(self.out_dir, db_name) + f" - {timestamp}.sqlite"
+            )
         else:
             self.db_file = self.input_db
 
@@ -260,26 +275,32 @@ class FetchData:
 
         try:
             if urls:
-                with tqdm(total=len(urls), ascii=False,
-                          unit="url", bar_format=bar_format) as pbar:
+                with tqdm(
+                    total=len(urls), ascii=False, unit="url", bar_format=bar_format
+                ) as pbar:
 
                     for url in urls:
                         self.url_exit_status = 0
                         download_processing_log(self.debug, url)
                         supported_url, self.exit_status = check_url(
-                            url, self.debug, self.exit_status)
+                            url, self.debug, self.exit_status
+                        )
 
                         if supported_url:
                             # check if url exists in db
                             if self.input_db:
-                                exists = self.db.query(models.Metadata).filter(
-                                    models.Metadata.source == url).first() # pyright: ignore[reportOptionalCall]
+                                exists = (
+                                    self.db.query(models.Metadata)  # pyright: ignore[reportOptionalCall]
+                                    .filter(models.Metadata.source == url)
+                                    .first()
+                                )  
                             else:
                                 exists = None
 
                             if not exists or self.force:
-                                fic = FicHub(self.debug, self.automated,
-                                             self.exit_status)
+                                fic = FicHub(
+                                    self.debug, self.automated, self.exit_status
+                                )
                                 fic.get_fic_metadata(url, self.format_type)
 
                                 if self.verbose:
@@ -288,13 +309,22 @@ class FetchData:
                                 try:
                                     # if --download-ebook flag used
                                     if self.format_type:
-                                        self.exit_status, self.url_exit_status = save_data(
-                                            self.out_dir, fic.files, self.debug, self.force,
-                                            self.exit_status, self.automated) # pyright: ignore[reportGeneralTypeIssues]
+                                        self.exit_status, self.url_exit_status = (
+                                            save_data(
+                                                self.out_dir,
+                                                fic.files,
+                                                self.debug,
+                                                self.force,
+                                                self.exit_status,
+                                                self.automated,
+                                            )
+                                        )  # pyright: ignore[reportGeneralTypeIssues]
 
                                     # save the data to db
                                     if fic.files["meta"]:
-                                        fic.files["meta"] = normalize_raw_extended_meta(fic.files["meta"])
+                                        fic.files["meta"] = normalize_raw_extended_meta(
+                                            fic.files["meta"]
+                                        )
                                         meta_fetched_log(self.debug, url)
                                         self.save_to_db(fic.files["meta"])
 
@@ -332,33 +362,51 @@ class FetchData:
                                 pbar.update(1)
                                 if self.debug:
                                     logger.info(
-                                        "Metadata already exists. Skipping. Use --force to force-update existing data.")
-                                tqdm.write(Fore.RED +
-                                           "Metadata already exists. Skipping. Use --force to force-update existing data.\n")
+                                        "Metadata already exists. Skipping. Use --force to force-update existing data."
+                                    )
+                                tqdm.write(
+                                    Fore.RED
+                                    + "Metadata already exists. Skipping. Use --force to force-update existing data.\n"
+                                )
 
                     if self.exit_status == 0:
-                        tqdm.write(Fore.GREEN +
-                                   "\nMetadata saved as " + Fore.BLUE +
-                                   f"{os.path.abspath(self.db_file)}"+Style.RESET_ALL +
-                                   Style.RESET_ALL)
+                        tqdm.write(
+                            Fore.GREEN
+                            + "\nMetadata saved as "
+                            + Fore.BLUE
+                            + f"{os.path.abspath(self.db_file)}"
+                            + Style.RESET_ALL
+                            + Style.RESET_ALL
+                        )
             else:
-                typer.echo(Fore.RED +
-                           "No new urls found! If output.log exists, please clear it.")
+                typer.echo(
+                    Fore.RED
+                    + "No new urls found! If output.log exists, please clear it."
+                )
         except KeyboardInterrupt:
             output_log_cleanup(app_dirs)
             sys.exit(2)
 
         finally:
             if self.changelog:
-                build_changelog(urls_input, urls_input_dedup, urls, downloaded_urls,
-                                err_urls, no_updates_urls, self.out_dir)
+                build_changelog(
+                    urls_input,
+                    urls_input_dedup,
+                    urls,
+                    downloaded_urls,
+                    err_urls,
+                    no_updates_urls,
+                    self.out_dir,
+                )
 
     def save_to_db(self, item):
-        """ Create the db and execute insert or update crud
-            repectively
+        """Create the db and execute insert or update crud
+        repectively
         """
         try:
-            models.Base.metadata.create_all(bind=self.engine) # pyright: ignore[reportAttributeAccessIssue]
+            models.Base.metadata.create_all(  # pyright: ignore[reportAttributeAccessIssue]
+                bind=self.engine
+            )  
         except OperationalError as e:
             if self.debug:
                 logger.error(Fore.RED + str(e))
@@ -368,15 +416,16 @@ class FetchData:
         # if force=True, dont insert, skip to else & update instead
         if not self.update_db and not self.force:
             self.exit_status, self.url_exit_status = crud.insert_data(
-                self.db, item, self.debug)
+                self.db, item, self.debug
+            )
 
         elif self.update_db and not self.input_db == "" or self.force:
             self.exit_status, self.url_exit_status = crud.update_data(
-                self.db, item, self.debug)
+                self.db, item, self.debug
+            )
 
     def update_metadata(self):
-        """ Update the metadata found in the sqlite database
-        """
+        """Update the metadata found in the sqlite database"""
         if os.path.isfile(self.input_db):
             self.db_file = self.input_db
             self.engine, self.SessionLocal = init_database(self.db_file)
@@ -407,7 +456,7 @@ class FetchData:
         urls_input = []
         for row in all_rows:
             row_dict = object_as_dict(row)
-            urls_input.append(row_dict['source'])
+            urls_input.append(row_dict["source"])
 
         try:
             urls, _ = urls_preprocessing(urls_input, self.debug)
@@ -420,13 +469,13 @@ class FetchData:
         downloaded_urls, no_updates_urls, err_urls = [], [], []
 
         try:
-            with tqdm(total=len(urls), ascii=False,
-                      unit="url", bar_format=bar_format) as pbar:
+            with tqdm(
+                total=len(urls), ascii=False, unit="url", bar_format=bar_format
+            ) as pbar:
 
                 for url in urls:
                     self.url_exit_status = 0
-                    fic = FicHub(self.debug, self.automated,
-                                 self.exit_status)
+                    fic = FicHub(self.debug, self.automated, self.exit_status)
                     fic.get_fic_metadata(url, self.format_type)
 
                     if self.verbose:
@@ -436,8 +485,13 @@ class FetchData:
                         # if --download-ebook flag used
                         if self.format_type:
                             self.exit_status, self.url_exit_status = save_data(
-                               self.out_dir, fic.files, self.debug, self.force,
-                                self.exit_status, self.automated) # pyright: ignore[reportGeneralTypeIssues]
+                                self.out_dir,
+                                fic.files,
+                                self.debug,
+                                self.force,
+                                self.exit_status,
+                                self.automated,
+                            )  # pyright: ignore[reportGeneralTypeIssues]
 
                         # update the metadata
                         if fic.files["meta"]:
@@ -446,7 +500,8 @@ class FetchData:
                             )
                             meta_fetched_log(self.debug, url)
                             self.exit_status, self.url_exit_status = crud.update_data(
-                                self.db, fic.files["meta"], self.debug)
+                                self.db, fic.files["meta"], self.debug
+                            )
 
                             with open("output.log", "a") as file:
                                 file.write(f"{url}\n")
@@ -467,7 +522,7 @@ class FetchData:
                     # if fic doesnt exist or the data is not fetched by the API yet
                     except Exception:
                         if self.debug:
-                           logger.error(str(traceback.format_exc()))
+                            logger.error(str(traceback.format_exc()))
                         err_urls.append(url)
                         self.exit_status = 1
                         pbar.update(1)
@@ -479,13 +534,20 @@ class FetchData:
 
         finally:
             if self.changelog:
-                build_changelog(urls_input, urls, urls, downloaded_urls,
-                                err_urls, no_updates_urls, self.out_dir)
+                build_changelog(
+                    urls_input,
+                    urls,
+                    urls,
+                    downloaded_urls,
+                    err_urls,
+                    no_updates_urls,
+                    self.out_dir,
+                )
 
     def export_db_as_json(self):
         _, file_name = os.path.split(self.input_db)
         self.db_name = os.path.splitext(file_name)[0]
-        self.json_file = os.path.join(self.out_dir, self.db_name)+".json"
+        self.json_file = os.path.join(self.out_dir, self.db_name) + ".json"
 
         if os.path.isfile(self.input_db):
             self.engine, self.SessionLocal = init_database(self.input_db)
@@ -497,17 +559,19 @@ class FetchData:
             self.db: Session = next(get_db(self.SessionLocal))
             crud.dump_json(self.db, self.input_db, self.json_file, self.debug)
         else:
-            tqdm.write(Fore.RED +
-                       "SQLite db is not found. Use an existing sqlite db using: --input-db ")
+            tqdm.write(
+                Fore.RED
+                + "SQLite db is not found. Use an existing sqlite db using: --input-db "
+            )
 
     def db_backup(self, suffix):
-        """ Creates a backup db in the same directory as the sqlite db
-        """
+        """Creates a backup db in the same directory as the sqlite db"""
         timestamp = datetime.now().strftime("%Y-%m-%d T%H%M%S")
         backup_out_dir, file_name = os.path.split(self.db_file)
         db_name = os.path.splitext(file_name)[0]
         backup_db_path = os.path.join(
-            backup_out_dir, f"{db_name}.{suffix} - {timestamp}.sqlite")
+            backup_out_dir, f"{db_name}.{suffix} - {timestamp}.sqlite"
+        )
         shutil.copy(self.db_file, backup_db_path)
 
         if self.debug:
@@ -515,8 +579,7 @@ class FetchData:
         tqdm.write(Fore.BLUE + f"Created backup db '{backup_db_path}'")
 
     def run_migrations(self):
-        """ Migrates the db from old db schema to the new one
-        """
+        """Migrates the db from old db schema to the new one"""
         if os.path.isfile(self.input_db):
             self.db_file = self.input_db
             self.engine, self.SessionLocal = init_database(self.db_file)
@@ -528,13 +591,10 @@ class FetchData:
 
         try:
             crud.add_fichub_id_column(self.db, self.db_backup, self.debug)
-            crud.add_db_last_updated_column(
-                self.db, self.db_backup, self.debug)
-            crud.add_rawExtendedMeta_columns(
-                self.db, self.db_backup, self.debug)
-            crud.rename_favs_column(
-                self.db, self.db_backup, self.debug)
-            
+            crud.add_db_last_updated_column(self.db, self.db_backup, self.debug)
+            crud.add_rawExtendedMeta_columns(self.db, self.db_backup, self.debug)
+            crud.rename_favs_column(self.db, self.db_backup, self.debug)
+
         except OperationalError as e:
             if self.debug:
                 logger.info(Fore.RED + str(e))
@@ -547,11 +607,11 @@ class FetchData:
 
         params = {
             # 'view_full_work': 'true',
-            'view_adult': 'true'
+            "view_adult": "true"
         }
 
         headers = {
-            'User-Agent': f'Bot: fichub_cli_metadata/{plugin_version} (User: {user_contact}, Bot: https://github.com/fichub-cli-contrib/fichub-cli-metadata)'
+            "User-Agent": f"Bot: fichub_cli_metadata/{plugin_version} (User: {user_contact}, Bot: https://github.com/fichub-cli-contrib/fichub-cli-metadata)"
         }
 
         if self.debug:
@@ -560,8 +620,8 @@ class FetchData:
 
         with console.status(f"[bold green]Processing {fetch_urls}"):
             response = requests.get(
-                fetch_urls, timeout=(5, 300),
-                headers=headers, params=params)
+                fetch_urls, timeout=(5, 300), headers=headers, params=params
+            )
 
             if response.status_code == 429:
                 if self.debug:
@@ -575,13 +635,12 @@ class FetchData:
                 tqdm.write("Resuming downloads!")
 
                 # retry GET request
-                response = requests.get(
-                    fetch_urls, timeout=(5, 300), params=params)
+                response = requests.get(fetch_urls, timeout=(5, 300), params=params)
 
             if self.debug:
                 logger.debug(f"GET: {response.status_code}: {response.url}")
 
-            html_page = BeautifulSoup(response.content, 'html.parser')
+            html_page = BeautifulSoup(response.content, "html.parser")
 
             found_flag = False
             if re.search("https://archiveofourown.org/", fetch_urls):
@@ -590,7 +649,8 @@ class FetchData:
                 ao3_series_list = []
 
                 ao3_series_works_html_h4 = html_page.find_all(
-                    'h4', attrs={'class': 'heading'})
+                    "h4", attrs={"class": "heading"}
+                )
 
                 for i in ao3_series_works_html_h4:
                     ao3_series_works_html.append(i)
@@ -599,41 +659,55 @@ class FetchData:
                 for i in ao3_series_works_html_h4:
                     ao3_series_works_html += str(i)
 
-                ao3_urls = BeautifulSoup(ao3_series_works_html, 'html.parser')
+                ao3_urls = BeautifulSoup(ao3_series_works_html, "html.parser")
 
-                for tag in ao3_urls.find_all('a', {'href': re.compile('/works/')}):
+                for tag in ao3_urls.find_all("a", {"href": re.compile("/works/")}):
                     ao3_works_list.append(
-                        "https://archiveofourown.org"+str(tag['href']))
+                        "https://archiveofourown.org" + str(tag["href"])
+                    )
 
-                for tag in ao3_urls.find_all('a', {'href': re.compile('/series/')}):
+                for tag in ao3_urls.find_all("a", {"href": re.compile("/series/")}):
                     ao3_series_list.append(
-                        "https://archiveofourown.org"+str(tag['href']))
+                        "https://archiveofourown.org" + str(tag["href"])
+                    )
 
                 if ao3_works_list:
                     found_flag = True
-                    tqdm.write(Fore.GREEN +
-                               f"\nFound {len(ao3_works_list)} works urls." +
-                               Style.RESET_ALL)
-                    ao3_works_list = '\n'.join(ao3_works_list)
-                    tqdm.write(ao3_works_list + Fore.BLUE + "\n\nSaving the list to 'ao3_works_list.txt' in the current directory"
-                               + Style.RESET_ALL)
+                    tqdm.write(
+                        Fore.GREEN
+                        + f"\nFound {len(ao3_works_list)} works urls."
+                        + Style.RESET_ALL
+                    )
+                    ao3_works_list = "\n".join(ao3_works_list)
+                    tqdm.write(
+                        ao3_works_list
+                        + Fore.BLUE
+                        + "\n\nSaving the list to 'ao3_works_list.txt' in the current directory"
+                        + Style.RESET_ALL
+                    )
 
                     with open("ao3_works_list.txt", "a") as f:
-                        f.write(ao3_works_list+"\n")
+                        f.write(ao3_works_list + "\n")
 
                     self.exit_status = 0
 
                 if ao3_series_list:
                     found_flag = True
-                    tqdm.write(Fore.GREEN +
-                               f"\nFound {len(ao3_series_list)} series urls." +
-                               Style.RESET_ALL)
-                    ao3_series_list = '\n'.join(ao3_series_list)
-                    tqdm.write(ao3_series_list + Fore.BLUE + "\n\nSaving the list to 'ao3_series_list.txt' in the current directory"
-                               + Style.RESET_ALL)
+                    tqdm.write(
+                        Fore.GREEN
+                        + f"\nFound {len(ao3_series_list)} series urls."
+                        + Style.RESET_ALL
+                    )
+                    ao3_series_list = "\n".join(ao3_series_list)
+                    tqdm.write(
+                        ao3_series_list
+                        + Fore.BLUE
+                        + "\n\nSaving the list to 'ao3_series_list.txt' in the current directory"
+                        + Style.RESET_ALL
+                    )
 
                     with open("ao3_series_list.txt", "a") as f:
-                        f.write(ao3_series_list+"\n")
+                        f.write(ao3_series_list + "\n")
 
                     self.exit_status = 0
 
