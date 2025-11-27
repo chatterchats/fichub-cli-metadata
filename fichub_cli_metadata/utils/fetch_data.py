@@ -451,7 +451,7 @@ class FetchData:
 
                 for tag in ao3_urls.find_all('a', {'href': re.compile('/works/')}):
                     ao3_works_list.append(
-                        "https://archiveofourown.org"+tag['href'])
+                        "https://archiveofourown.org"+str(tag['href']))
 
                 for tag in ao3_urls.find_all('a', {'href': re.compile('/series/')}):
                     ao3_series_list.append(
