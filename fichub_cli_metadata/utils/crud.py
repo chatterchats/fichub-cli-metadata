@@ -203,7 +203,7 @@ def add_db_last_updated_column(db: Session, db_backup, debug: bool):
 def add_rawExtendedMeta_columns(db: Session, db_backup, debug: bool):
     """ To add fic_id, author_id, author_url, fandom columns
     """
-    cols_list = ['fic_id','author_id','author_url','fandom']
+    cols_list = ['fic_id','author_id','author_url','fandom', 'relationships', 'tags']
     for col in cols_list:
         col_exists = False
         try:
