@@ -142,7 +142,7 @@ class FetchData:
                                     if self.format_type:
                                         self.exit_status, self.url_exit_status = save_data(
                                             self.out_dir, fic.files, self.debug, self.force,
-                                            self.exit_status, self.automated)
+                                            self.exit_status, self.automated) # pyright: ignore[reportGeneralTypeIssues]
 
                                     # save the data to db
                                     if fic.files["meta"]:
@@ -288,7 +288,7 @@ class FetchData:
                         if self.format_type:
                             self.exit_status, self.url_exit_status = save_data(
                                self.out_dir, fic.files, self.debug, self.force,
-                                self.exit_status, self.automated)
+                                self.exit_status, self.automated) # pyright: ignore[reportGeneralTypeIssues]
 
                         # update the metadata
                         if fic.files["meta"]:
@@ -455,7 +455,7 @@ class FetchData:
 
                 for tag in ao3_urls.find_all('a', {'href': re.compile('/series/')}):
                     ao3_series_list.append(
-                        "https://archiveofourown.org"+tag['href'])
+                        "https://archiveofourown.org"+str(tag['href']))
 
                 if ao3_works_list:
                     found_flag = True
