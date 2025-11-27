@@ -1,3 +1,4 @@
+# type: ignore
 # Copyright 2022 Arbaaz Laskar
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,30 +59,30 @@ def get_ins_query(item: dict):
         exit(1)
 
     query = models.Metadata(
-        fichub_id=item['id'],
-        fic_id = process_extendedMeta(item,'id'),
-        title=item['title'],
-        author=item['author'],
-        author_id=item['authorLocalId'],
-        author_url=item['authorUrl'],
-        chapters=item['chapters'],
-        created=item['created'],
-        description=item['description'],
-        rated=process_extendedMeta(item,'rated'),
-        language=process_extendedMeta(item,'language'),
-        genre=process_extendedMeta(item,'genres'),
-        characters=process_extendedMeta(item,'characters'),
-        reviews=process_extendedMeta(item,'reviews'),
-        favorites=process_extendedMeta(item,'favorites'),
-        follows=process_extendedMeta(item,'follows'),
-        status=item['status'],
-        words=item['words'],
-        fandom=process_extendedMeta(item,'raw_fandom'),
-        fic_last_updated=datetime.fromisoformat(item['updated']).strftime(config['fic_up_time_format']),
-        db_last_updated=datetime.now().astimezone().strftime(
-            config['db_up_time_format']),
-        source=item['source']
-
+        fichub_id=item["id"],
+        fic_id=item.get("fic_id") or process_extendedMeta(item, "id"),
+        title=item["title"],
+        author=item["author"],
+        author_id=item["authorLocalId"],
+        author_url=item["authorUrl"],
+        chapters=item["chapters"],
+        created=item["created"],
+        description=item["description"],
+        rated=process_extendedMeta(item, "rated"),
+        language=process_extendedMeta(item, "language"),
+        genre=process_extendedMeta(item, "genres"),
+        characters=process_extendedMeta(item, "characters"),
+        relationships=process_extendedMeta(item, "relationships"),
+        tags=process_extendedMeta(item, "tags"),
+        reviews=process_extendedMeta(item, "reviews"),
+        favorites=process_extendedMeta(item, "favorites"),
+        follows=process_extendedMeta(item, "follows"),
+        status=item["status"],
+        words=item["words"],
+        fandom=process_extendedMeta(item, "raw_fandom"),
+        fic_last_updated=datetime.fromisoformat(item["updated"]).strftime(config["fic_up_time_format"]),
+        db_last_updated=datetime.now().astimezone().strftime(config["db_up_time_format"]),
+        source=item["source"],
     )
     return query
 

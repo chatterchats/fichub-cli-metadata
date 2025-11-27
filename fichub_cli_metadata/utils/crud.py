@@ -96,6 +96,8 @@ def update_data(db: Session, item: dict, debug: bool):
                 models.Metadata.language: process_extendedMeta(item,'language'),
                 models.Metadata.genre: process_extendedMeta(item,'genres'),
                 models.Metadata.characters: process_extendedMeta(item,'characters'),
+                models.Metadata.relationships: item.get('relationships'),
+                models.Metadata.tags: item.get('tags'),
                 models.Metadata.reviews: process_extendedMeta(item,'reviews'),
                 models.Metadata.favorites: process_extendedMeta(item,'favorites'),
                 models.Metadata.follows: process_extendedMeta(item,'follows'),
