@@ -126,29 +126,29 @@ def metadata(
     else:
         format_type = []
 
+    fic = FetchData(
+            out_dir=out_dir,
+            input_db=input_db,
+            update_db=update_db,
+            format_type=format_type,
+            export_db=export_db,
+            verbose=verbose,
+            debug=debug,
+            changelog=changelog,
+            automated=automated,
+            force=force,
+        )
+
     if input and not update_db:
-        fic = FetchData(debug=debug, automated=automated, format_type=format_type,
-                        out_dir=out_dir, input_db=input_db, update_db=update_db,
-                        export_db=export_db, force=force, verbose=verbose,
-                        changelog=changelog)
         fic.save_metadata(input)
 
     if input_db and update_db:
-
-        fic = FetchData(debug=debug, automated=automated, format_type=format_type,
-                        out_dir=out_dir, input_db=input_db, update_db=update_db,
-                        export_db=export_db, force=force, verbose=verbose,
-                        changelog=changelog)
         fic.update_metadata()
 
     if export_db:
-        fic = FetchData(debug=debug, automated=automated, changelog=changelog,
-                        out_dir=out_dir, input_db=input_db, update_db=update_db,
-                        export_db=export_db, force=force, verbose=verbose)
         fic.export_db_as_json()
 
     if fetch_urls:
-        fic = FetchData(debug=debug)
         fic.fetch_urls_from_page(fetch_urls)
 
     if version is True:
